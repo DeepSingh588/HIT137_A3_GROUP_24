@@ -1,13 +1,15 @@
-# Aryan Rakhra: Initializing OOP Base Class for HD requirements
-# oop_logic.py
+#Group No : 24
+# Author : Aryan Rakhra: Initializing OOP Base Class for HD requirements
+# Purpose: Defines the BaseModelManager (parent class) and the required Custom Decorator.
+
 import time
 from transformers import pipeline
 
-# --- MULTIPLE DECORATORS: 1. CUSTOM LOGGER ---
+# 1. CUSTOM LOGGER ---
 def time_and_log_activity(func):
     """
-    A custom decorator that measures execution time and prints it to the console.
-    This fulfills the 'Multiple Decorators' requirement.
+    A custom decorator that measures the execution time of a function.
+    This fulfills the 'Multiple Decorators' requirement when used on loading/running methods.
     """
     def wrapper(*args, **kwargs):
         start_time = time.time()
@@ -16,61 +18,58 @@ def time_and_log_activity(func):
         end_time = time.time()
         
         duration = end_time - start_time
-        print(f"[LOG: {func.__name__}]: Executed in {duration:.3f} seconds.")
+        # Log the performance to the terminal console
+        print(f"[MODEL LOG: {func.__name__}]: Execution time: {duration:.3f} seconds.")
         
         return result
     return wrapper
 
-# --- BASE CLASS: ENCAPSULATION & POLYMORPHISM ---
+# --- BASE CLASS: INHERITANCE, ENCAPSULATION & POLYMORPHISM ---
 class BaseModelManager:
     """
-    The abstract base class for all AI model wrappers.
-    
-    OOP Focus:
-    - ENCAPSULATION: Protects model details and the pipeline object.
-    - POLYMORPHISM: Defines the abstract 'run_model' method.
+    The parent class for all AI model wrappers, defining the common interface.
     """
     def __init__(self, model_name, category, purpose):
-        # ENCAPSULATION: Using protected convention attributes (single underscore)
+        # ENCAPSULATION: These attributes are protected (single underscore convention).
+        # They hold the model's core state (name, category, status)
         self._model_name = model_name
         self._category = category
         self._purpose = purpose
-        self._pipeline_object = None # Protected: holds the Hugging Face pipeline
+        self._pipeline_object = None # The Hugging Face pipeline object
         self._is_loaded = False
 
     # ENCAPSULATION: Public Getter Method
     def get_public_model_info(self):
         """
-        Provides safe, read-only access to the private model details.
-        Includes the CRITICAL FIX to ensure 'Status' key is always present.
+        Returns a dictionary of public information. This is the only controlled
+        way for the GUI to safely read the model's protected state.
         """
         return {
             "Model Name": self._model_name,
             "Category": self._category,
             "Purpose": self._purpose,
-            # CRITICAL FIX: Ensure the key 'Status' is always defined here
-            "Status": "Ready" if self._is_loaded else "Loading Error (Check Console)"
+            "Status": "Ready" if self._is_loaded else "Loading Error"
         }
 
-    # ENCAPSULATION & MULTIPLE DECORATORS: Load Pipeline Method
-    @time_and_log_activity # Custom Decorator
+    # Model Initialization Method (Uses the custom decorator)
+    @time_and_log_activity
     def initialize_hf_pipeline(self, pipeline_task, **kwargs):
-        """Loads the Hugging Face pipeline object for a given task."""
+        """Loads the Hugging Face model pipeline."""
         try:
-            # Use torch (PyTorch) as the backend framework
+            # Load the model, specifying 'cpu' for wide compatibility
             self._pipeline_object = pipeline(pipeline_task, model=self._model_name, device="cpu", **kwargs)
             self._is_loaded = True
             return True
         except Exception as e:
-            print(f"FATAL ERROR loading {self._model_name}: {e}")
+            print(f"[FATAL ERROR]: Could not load model '{self._model_name}'. Error: {e}")
             self._pipeline_object = None
             self._is_loaded = False
             return False
 
-    # POLYMORPHISM: Abstract Method (MUST be overridden)
+    # POLYMORPHISM: Abstract Method
     def run_model(self, user_input_data):
         """
-        ABSTRACT METHOD: Subclasses MUST implement their unique execution logic here.
-        This enforces the Polymorphism contract across all model wrappers.
+        ABSTRACT METHOD: Child classes MUST override this method.
+        This rule enforces Polymorphism: the GUI calls 'run_model' regardless of the model type.
         """
-        raise NotImplementedError("Concrete model class must implement 'run_model' logic.")
+        raise NotImplementedError("Concrete model class must implement its own 'run_model' logic.")
