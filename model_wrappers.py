@@ -1,85 +1,95 @@
-# Rohanpreet Singh: Preparing Text & Image Model Wrappers. 
-from oop_logic import BaseModelManager, time_and_log_activity
-from PIL import Image # Required for ImageClassifier
+#Group No : 24
+# Author: Rohanpreet Singh: Preparing Text & Image Model Wrappers. 
+# Purpose: Implement the two specific AI models (Text and Vision) by inheriting from BaseModelManager.
 
-# --- CONCRETE MODEL 1: TEXT GENERATOR (NLP) ---
+from oop_logic import BaseModelManager, time_and_log_activity
+from PIL import Image # Used for handling image files for the Vision model
+
+# MODEL 1: TEXT GENERATOR (NLP Category) ---
 class TextGenerator(BaseModelManager):
     """
-    Wraps a sophisticated Text Generation model (Text Generation is NLP). 
-    Demonstrates INHERITANCE and METHOD OVERRIDING.
+    Handles text generation, inheriting setup logic and overriding the run method.
     """
     def __init__(self):
+        # INHERITANCE: Calls the parent constructor
         super().__init__(
-            model_name="gpt2",
+            model_name="gpt2", # Small, fast model for creative text generation
             category="Text Generation (NLP)",
-            purpose="Generates creative or coherent text based on a user's prompt (Auto-Regressive)."
+            purpose="Generates coherent text to complete a short prompt or idea."
         )
+        # INHERITANCE: Uses the inherited loading method
         self.initialize_hf_pipeline("text-generation")
 
-    # METHOD OVERRIDING (Polymorphism in action)
+    # METHOD OVERRIDING (Polymorphism)
     @time_and_log_activity
     def run_model(self, input_text):
         """Executes the specific text generation task."""
         if not self._is_loaded:
-            return "Execution failed: Model pipeline is not loaded."
+            return "Execution failed: Text model is not loaded correctly."
         
         try:
             output = self._pipeline_object(
                 input_text, 
                 max_new_tokens=60, 
                 num_return_sequences=1,
-                truncation=True,
+                truncation=True, 
                 do_sample=True,
-                temperature=0.8
+                temperature=0.7 
             )
-            generated_text = output[0].get('generated_text', input_text)
+            generated_text = output[0].get('generated_text', "Error generating text.")
             
-            # Clean output by removing the prompt for a cleaner result
+            # Remove the original input text for a cleaner output display
             return generated_text.replace(input_text, "").strip()
 
         except Exception as e:
-            return f"Model execution error: {e}"
+            return f"Model execution error: Check if the prompt format is correct. Details: {e}"
 
 
-# --- CONCRETE MODEL 2: IMAGE CLASSIFIER (VISION) ---
+#  MODEL 2: IMAGE CLASSIFIER (Vision Category) ---
 class ImageClassifier(BaseModelManager):
     """
-    Wraps the 'CLIP' model for zero-shot image classification (Vision).
+    Handles zero-shot image classification.
     """
     def __init__(self):
+        # INHERITANCE: Calls the parent constructor
         super().__init__(
-            model_name="openai/clip-vit-base-patch32",
+            model_name="openai/clip-vit-base-patch32", # CLIP model for zero-shot classification
             category="Zero-Shot Image Classification (Vision)",
-            purpose="Classifies an image against user-provided labels at runtime (Zero-Shot)."
+            purpose="Classifies an image against a user-defined list of potential labels."
         )
+        # INHERITANCE: Uses the inherited loading method
         self.initialize_hf_pipeline("zero-shot-image-classification")
 
-    # METHOD OVERRIDING (Polymorphism in action)
+    # METHOD OVERRIDING (Polymorphism)
     @time_and_log_activity
     def run_model(self, image_file_path):
-        """Executes the specific image classification task."""
+        """Executes the specific image classification task, requiring a file path."""
         if not self._is_loaded:
-            return "Execution failed: Model pipeline is not loaded."
+            return "Execution failed: Image model is not loaded correctly."
 
         try:
+            # 1. Open the image file using the PIL library
             image_data = Image.open(image_file_path)
             
-            # Smart, specific labels for high-quality classification
+            # 2. Define the candidate labels (the options the model chooses from)
             candidate_labels = [
                 "a picture of a domestic cat", 
-                "a photograph of an outdoor nature landscape", 
-                "a close-up shot of a dog", 
-                "a picture of a person driving a vehicle"
+                "a photograph of a dog", 
+                "a beautiful outdoor landscape", 
+                "a building or structure",
+                "a drawing or cartoon"
             ]
             
+            # 3. Run the classification pipeline
             output = self._pipeline_object(image_data, candidate_labels=candidate_labels)
 
+            # 4. Format the top result
             top_prediction = output[0]['label']
-            confidence = f"{output[0]['score']:.2%}"
+            confidence = f"{output[0]['score']:.2%}" 
             
-            return f"SUCCESS! The model is {confidence} confident the image is: {top_prediction}"
+            return f"CLASSIFICATION SUCCESS!\n\nConfidence: {confidence}\nModel's Top Prediction: {top_prediction}"
 
         except FileNotFoundError:
-            return "Input Error: Image file not found. Please check the path."
+            return "Input Error: Image file not found. Please check the file path entered."
         except Exception as e:
-            return f"Model execution error: Ensure the path leads to a valid image. Details: {e}"
+            return f"Model execution error: Ensure the file is a valid image (JPG/PNG). Details: {e}"
